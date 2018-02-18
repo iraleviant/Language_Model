@@ -13,6 +13,10 @@ import os
 import itertools
 import re
 # Add ckp
+
+DIC_Ready=False #True if you already have readily available dictionary
+
+
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank RNN/LSTM Language Model')
 parser.add_argument('--data', type=str, default='./inputSimple', # './input'
                     help='location of the data corpus')
@@ -84,12 +88,24 @@ input_files=   "/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corp
 
 print('starting loading test data')
 
-corpus = data.Corpus(input_files)
+if DIC_Ready:
+    objects = []
+    with (open('savedDictionaryTestnbnb', "rb")) as openfile:
+        while True:
+            try:
+                objects.append(pickle.load(openfile))
+            except EOFError:
+                break
+    corpus=objects[0]
+    print('corpus-dictionary read')
+else:
+    corpus = data.Corpus(input_files)
+    with open('savedDictionaryALL', 'wb') as fp:
+        pickle.dump(corpus, fp)
+    print('corpus-dictionary saved')
 
-with open('savedDictionaryTest', 'wb') as fp:
-    pickle.dump(corpus, fp)
 
-print('corpus-dictionary saved')
+
 
 def batchify(data, bsz):
     # Work out how cleanly we can divide the dataset into bsz parts.
@@ -191,29 +207,41 @@ def train():
         
         count_pairs=0
         with open(path) as f:
-            for line1,line2 in itertools.izip_longest(*[f]*2):
+            #for line1,line2 in itertools.izip_longest(*[f]*2):
+            for line1 in f:
                 ids = torch.LongTensor(1000) #not sure what is better 1K or 10K
                 token=0
                 count_pairs+=1
                 print count_pairs
                 words1=re.findall(r'\w+', line1) + ['<eos>']
+                print "number of tokens in a line is:", token
                 for word in words1:
-                    if word in corpus.dictionary.word2idx:
-                        ids[token] = corpus.dictionary.word2idx[word] 
-                    else:
-                        ids[token]=0  ##OOV (out of vocabulary word), corpus.dictionary.word2idx[<unk>]=0 
-                    token += 1
-                if not line2:
-                    print 'Ive reached the end'
-                    break
-                else:
-                    words2=re.findall(r'\w+', line2) + ['<eos>']
-                    for word in words2:
-                        if word in corpus.dictionary.word2idx:
-                            ids[token] = corpus.dictionary.word2idx[word] 
-                        else:
-                            ids[token]=0   ##OOV (out of vocabulary word), corpus.dictionary.word2idx[<unk>]=0 
+                    #===========================================================
+                    # if word in corpus.dictionary.word2idx:
+                    #     ids[token] = corpus.dictionary.word2idx[word] 
+                    # else:
+                    #     ids[token]=0  ##OOV (out of vocabulary word), corpus.dictionary.word2idx[<unk>]=0 
+                    # token += 1
+                    #===========================================================
+                    try:
+                        ids[token] = corpus.dictionary.word2idx[word]
                         token += 1
+                    except:
+                        ids[token]=0 ##OOV (out of vocabulary word), corpus.dictionary.word2idx[<unk>]=0 
+                        token += 1
+                #===============================================================
+                # if not line2:
+                #     print 'Ive reached the end'
+                #     break
+                # else:
+                #     words2=re.findall(r'\w+', line2) + ['<eos>']
+                #     for word in words2:
+                #         if word in corpus.dictionary.word2idx:
+                #             ids[token] = corpus.dictionary.word2idx[word] 
+                #         else:
+                #             ids[token]=0   ##OOV (out of vocabulary word), corpus.dictionary.word2idx[<unk>]=0 
+                #         token += 1
+                #===============================================================
                        
                 #continue
                 #data, targets = get_batch(fp, i, i+args.bptt)
