@@ -11,7 +11,7 @@ import model
 from itertools import islice
 import os
 import itertools
-
+import re
 # Add ckp
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank RNN/LSTM Language Model')
 parser.add_argument('--data', type=str, default='./inputSimple', # './input'
@@ -79,8 +79,8 @@ if torch.cuda.is_available():
 ###############################################################################
 #input_files=   "../corpus/clean_wiki_new.txt,../corpus/billion_word_clean.txt,../corpus/webbase_all_clean.txt,../corpus/news_2013_clean,../corpus/news_2012_clean" #clean without 2 phrase
 #input_test=  "../corpus/example_after_2phrase.txt,../corpus/clean_wiki_new_test.txt"
-#input_files=   "/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/clean_wiki_new.txt,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/billion_word_clean.txt,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/webbase_all_clean.txt,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/news_2013_clean,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/news_2012_clean" #clean without 2 phrase
-input_files= "/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/clean_wiki_new_test.txt"
+input_files=   "/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/clean_wiki_new.txt,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/billion_word_clean.txt,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/webbase_all_clean.txt,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/news_2013_clean,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/news_2012_clean" #clean without 2 phrase
+#input_files= "/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/clean_wiki_new_test.txt"
 
 print('starting loading test data')
 
@@ -196,18 +196,25 @@ def train():
                 token=0
                 count_pairs+=1
                 print count_pairs
-                words1 = line1.split()  + ['<eos>']
+                words1=re.findall(r'\w+', line1) + ['<eos>']
                 for word in words1:
-                    ids[token] = corpus.dictionary.word2idx[word] 
+                    if word in corpus.dictionary.word2idx:
+                        ids[token] = corpus.dictionary.word2idx[word] 
+                    else:
+                        ids[token]=0  ##OOV (out of vocabulary word), corpus.dictionary.word2idx[<unk>]=0 
                     token += 1
                 if not line2:
                     print 'Ive reached the end'
                     break
                 else:
-                    words2 = line2.split()  + ['<eos>']
+                    words2=re.findall(r'\w+', line2) + ['<eos>']
                     for word in words2:
-                        ids[token] = corpus.dictionary.word2idx[word] 
+                        if word in corpus.dictionary.word2idx:
+                            ids[token] = corpus.dictionary.word2idx[word] 
+                        else:
+                            ids[token]=0   ##OOV (out of vocabulary word), corpus.dictionary.word2idx[<unk>]=0 
                         token += 1
+                       
                 #continue
                 #data, targets = get_batch(fp, i, i+args.bptt)
                 data=ids[0:token-1] #check
