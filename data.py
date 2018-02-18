@@ -56,12 +56,7 @@ class Corpus(object):
                         sys.stdout.flush()
                     # line to list of token + eos
                     words=re.findall(r'\w+', line) + ['<eos>']
-                    #words=re.findall(r'^[^a-z]+$', line) + ['<eos>']
-                    #words = line.split()  + ['<eos>']
                     for word in words:
-                        #match=re.search(r'^[^a-z]+$', word)
-                        #if not(len(word)) or bool(match):
-                        #    continue
                         self.dictionary.add_word(word)
             #self.dictionary.files[path]= n_lines_per_file
         return 
