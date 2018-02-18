@@ -1,20 +1,31 @@
 import os
 import torch
 import sys
+import re
 
+Min_Freq=3
 
 class Dictionary(object):
     """Build word2idx and idx2word from Corpus(train/val/test)"""
     def __init__(self):
         self.word2idx = {} # word: index
         self.idx2word = [] # position(index): word
-
+        #self.files={} #name_file:number of lines
+        self.counts={} #word: its count in the corpus
+    
     def add_word(self, word):
         """Create/Update word2idx and idx2word"""
-        if word not in self.word2idx:
+        
+        if word in self.counts:
+            self.counts[word]+=1
+        else:
+            self.counts[word]=1
+            
+        if word not in self.word2idx and self.counts[word]>=Min_Freq:
             self.idx2word.append(word)
-            self.word2idx[word] = len(self.idx2word) - 1
-        return self.word2idx[word]
+            self.word2idx[word] = len(self.idx2word) - 1    
+        
+        return 
 
     def __len__(self):
         return len(self.idx2word)
@@ -34,32 +45,26 @@ class Corpus(object):
         for path in ifs:
             print "Reading  ", path
             assert os.path.exists(path)
-            n_sent = 0
+            n_lines_per_file = 0
             # Add words to the dictionary
             with open(path, 'r') as f:
-                tokens = 0
                 for line in f:
-                    n_sent+=1
-                    if n_sent % 10000 == 0: #n_sent divides in 10000 without remainder
-                        print  str(round(float(n_sent)/1000, 0))+'K'+'\r', 
+                    n_lines_per_file+=1
+                    if n_lines_per_file % 10000 == 0: #n_sent divides in 10000 without remainder
+                        print  str(round(float(n_lines_per_file)/1000, 0))+'K'+'\r', 
                         sys.stdout.flush()
                     # line to list of token + eos
-                    words = line.split() + ['<eos>']
-                    tokens += len(words)
+                    words=re.findall(r'\w+|[^\w\s]+', line) + ['<eos>']
                     for word in words:
+                        match=re.search(r'^[^a-z]+$', word)
+                        if not(len(word)) or bool(match):
+                            continue
                         self.dictionary.add_word(word)
-    
-            # Tokenize file content
-            with open(path, 'r') as f:
-                ids = torch.LongTensor(tokens)
-                token = 0
-                for line in f:
-                    words = line.split() + ['<eos>']
-                    for word in words:
-                        ids[token] = self.dictionary.word2idx[word] #assign each token in the corpus its index in the dictionary
-                        token += 1
+            #self.dictionary.files[path]= n_lines_per_file
 
-        return ids
+        return 
+    
+    
     
 ###################################################################        
 #### Test For me ###################################################
@@ -71,9 +76,9 @@ def main():
     #### replace files' location accordingly, first better check on test files
     #input_files = "/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/word_2phrase_corpus/webbase_phrase2.txt,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/word_2phrase_corpus/wiki_phrase2.txt,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/word_2phrase_corpus/billion_phrase2.txt,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/word_2phrase_corpus/news_2013_phrase2.txt,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/word_2phrase_corpus/news2012_phrase2.txt"
     #input_files=   "/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/clean_wiki_new.txt,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/billion_word_clean.txt,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/webbase_all_clean.txt,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/news_2013_clean,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/news_2012_clean" #clean without 2 phrase
-    #input_files = "/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/example_after_2phrase.txt,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/clean_wiki_new_test.txt" #test
-    input_files=   "/corpus/clean_wiki_new.txt,/corpus/billion_word_clean.txt,/corpus/webbase_all_clean.txt,/corpus/news_2013_clean,/corpus/news_2012_clean" #clean without 2 phrase
-    input_test=  "/corpus/example_after_2phrase.txt,/corpus/clean_wiki_new_test.txt"
+    input_files = "/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/example_after_2phrase.txt,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/clean_wiki_new_test.txt" #test
+    #input_files=   "/corpus/clean_wiki_new.txt,/corpus/billion_word_clean.txt,/corpus/webbase_all_clean.txt,/corpus/news_2013_clean,/corpus/news_2012_clean" #clean without 2 phrase
+    #input_files=  "/corpus/example_after_2phrase.txt,/corpus/clean_wiki_new_test.txt"
    
     corpus=Corpus(input_files)
 
