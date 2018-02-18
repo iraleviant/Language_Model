@@ -14,7 +14,7 @@ import itertools
 import re
 # Add ckp
 
-DIC_Ready=False #True if you already have readily available dictionary
+DIC_Ready=True #True if you already have readily available dictionary
 
 
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank RNN/LSTM Language Model')
@@ -90,7 +90,7 @@ print('starting loading test data')
 
 if DIC_Ready:
     objects = []
-    with (open('savedDictionaryTestnbnb', "rb")) as openfile:
+    with (open('savedDictionaryALL', "rb")) as openfile:
         while True:
             try:
                 objects.append(pickle.load(openfile))
@@ -100,7 +100,7 @@ if DIC_Ready:
     print('corpus-dictionary read')
 else:
     corpus = data.Corpus(input_files)
-    with open('savedDictionaryALL', 'wb') as fp:
+    with open('savedDictionaryALLhhh', 'wb') as fp:
         pickle.dump(corpus, fp)
     print('corpus-dictionary saved')
 
@@ -214,7 +214,6 @@ def train():
                 count_pairs+=1
                 print count_pairs
                 words1=re.findall(r'\w+', line1) + ['<eos>']
-                print "number of tokens in a line is:", token
                 for word in words1:
                     #===========================================================
                     # if word in corpus.dictionary.word2idx:
@@ -229,6 +228,8 @@ def train():
                     except:
                         ids[token]=0 ##OOV (out of vocabulary word), corpus.dictionary.word2idx[<unk>]=0 
                         token += 1
+                print "number of tokens in a line is:", token
+
                 #===============================================================
                 # if not line2:
                 #     print 'Ive reached the end'
