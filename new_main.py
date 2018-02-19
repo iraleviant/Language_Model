@@ -68,7 +68,7 @@ else:
     args.data = './input'
     args.epochs = 1 #40
     args.batch_size = 6
-    args.bptt = 35    
+    args.bptt = 30    
     args.dropout = 0
 
 # Set the random seed manually for reproducibility.
@@ -228,7 +228,7 @@ def train():
         
         count_100=0
         with open(path) as f:
-            for next_lines in itertools.izip_longest(*[f]*10): #reads 100 lines at a time
+            for next_lines in itertools.izip_longest(*[f]*100): #reads 100 lines at a time
                 count_100+=1
                 print "Another 10 lines were read:", count_100
                 ids=tokenize_per_chunck(next_lines)
