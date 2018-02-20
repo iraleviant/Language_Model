@@ -14,7 +14,7 @@ import itertools
 import re
 # Add ckp
 
-DIC_Ready=False #True if you already have readily available dictionary
+DIC_Ready=True #True if you already have readily available dictionary
 
 
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank RNN/LSTM Language Model')
@@ -24,11 +24,11 @@ parser.add_argument('--checkpoint', type=str, default='',
                     help='model checkpoint to use')
 parser.add_argument('--model', type=str, default='LSTM',
                     help='type of recurrent net (RNN_TANH, RNN_RELU, LSTM, GRU)')
-parser.add_argument('--emsize', type=int, default=650,
+parser.add_argument('--emsize', type=int, default=200,
                     help='size of word embeddings')
-parser.add_argument('--nhid', type=int, default=650,
+parser.add_argument('--nhid', type=int, default=200,
                     help='number of hidden units per layer')
-parser.add_argument('--nlayers', type=int, default=2,
+parser.add_argument('--nlayers', type=int, default=1,
                     help='number of layers')
 parser.add_argument('--lr', type=float, default=20,
                     help='initial learning rate')
@@ -67,7 +67,7 @@ if args.debug:
 else:
     args.data = './input'
     args.epochs = 1 #40
-    args.batch_size = 6
+    args.batch_size = 40 #30
     args.bptt = 30    
     args.dropout = 0
 
@@ -82,16 +82,18 @@ if torch.cuda.is_available():
 ###############################################################################
 # Load data
 ###############################################################################
-#input_files=   "../corpus/clean_wiki_new.txt,../corpus/billion_word_clean.txt,../corpus/webbase_all_clean.txt,../corpus/news_2013_clean,../corpus/news_2012_clean" #clean without 2 phrase
+input_files= "../corpus/clean_wiki_new.txt,../corpus/billion_word_clean.txt,../corpus/webbase_all_clean.txt,../corpus/news_2013_clean,../corpus/news_2012_clean" #clean without 2 phrase
 #input_test=  "../corpus/example_after_2phrase.txt,../corpus/clean_wiki_new_test.txt"
 #input_files=   "/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/clean_wiki_new.txt,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/billion_word_clean.txt,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/webbase_all_clean.txt,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/news_2013_clean,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/news_2012_clean" #clean without 2 phrase
-input_files= "/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/clean_wiki_new_test.txt"
+#input_files= "/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/clean_wiki_new_test.txt"
 
 print('starting loading test data')
 
 if DIC_Ready:
     objects = []
-    with (open('savedDictionaryTest', "rb")) as openfile:
+    #with (open('savedDictionaryTest', "rb")) as openfile:
+    with (open('savedDictionaryAll150', "rb")) as openfile:
+    #with (open('savedDictionaryALL', "rb")) as openfile:
         while True:
             try:
                 objects.append(pickle.load(openfile))
@@ -229,28 +231,20 @@ def train():
         count_100=0
         with open(path) as f:
             for next_lines in itertools.izip_longest(*[f]*100): #reads 100 lines at a time
+                line_start_time = time.time()
                 count_100+=1
-                print "Another 10 lines were read:", count_100
+                #print "Another 100 lines were read:", count_100
                 ids=tokenize_per_chunck(next_lines)
                 train_data = batchify(ids, args.batch_size) 
-    
+                
+                lineProcessingTimeMs = (time.time() - line_start_time)*1000
+                print('Lines no. %d: data proccess time: %f ms' % (count_100, lineProcessingTimeMs))
+                nnStartTime = time.time()
+                
                 for batch, i in enumerate(range(0, train_data.size(0) - 1, args.bptt)):  #args.bptt = 3 
                     #print batch  
-                    data, targets = get_batch(train_data, i)
-    
-
-         #======================================================================
-         # #continue
-         # #data, targets = get_batch(fp, i, i+args.bptt)
-         # data=ids[0:token-1] #check
-         # targets=ids[1:token] #check
-         # data = Variable(data, volatile=False)
-         # targets = Variable(targets.view(-1))
-         #======================================================================
-                #continue
-            # Starting each batch, we detach the hidden state from how it was previously produced.
-            # If we didn't, the model would try backpropagating all the way to start of the dataset.
-                    
+                    data, targets = get_batch(train_data, i)    
+                           
                     if args.debug:
                         #for batchIdx in range(0 , args.batch_size):
                         for batchIdx in range(0 , int(data.data.shape[1])):
@@ -298,6 +292,9 @@ def train():
                             elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss)))
                         total_loss = 0
                         start_time = time.time()
+                    
+                netProcessingTimeMs = (time.time() - nnStartTime)*1000
+                print('Lines no. %d: net train time: %f ms' % (count_100, netProcessingTimeMs))
 
 # Loop over epochs.
 lr = args.lr
