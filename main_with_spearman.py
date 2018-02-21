@@ -88,9 +88,9 @@ if torch.cuda.is_available():
 ###############################################################################
 # Load data
 ###############################################################################
-#input_files=   "../corpus/clean_wiki_new.txt,../corpus/billion_word_clean.txt,../corpus/webbase_all_clean.txt,../corpus/news_2013_clean,../corpus/news_2012_clean" #clean without 2 phrase
+input_files=   "../corpus/clean_wiki_new.txt,../corpus/billion_word_clean.txt,../corpus/webbase_all_clean.txt,../corpus/news_2013_clean,../corpus/news_2012_clean" #clean without 2 phrase
 #input_test=  "../corpus/example_after_2phrase.txt,../corpus/clean_wiki_new_test.txt"
-input_files=   "/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/clean_wiki_new.txt,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/billion_word_clean.txt,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/webbase_all_clean.txt,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/news_2013_clean,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/news_2012_clean" #clean without 2 phrase
+#input_files=   "/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/clean_wiki_new.txt,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/billion_word_clean.txt,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/webbase_all_clean.txt,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/news_2013_clean,/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/news_2012_clean" #clean without 2 phrase
 #input_files= "/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/clean_corpus_english/clean_wiki_new_test.txt"
 
 print('starting loading test data')
@@ -113,10 +113,6 @@ else:
         pickle.dump(corpus, fp)
     print('corpus-dictionary saved')
 
-
-
-    
-    
 
 def batchify(data, bsz):
     # Work out how cleanly we can divide the dataset into bsz parts.
@@ -217,7 +213,8 @@ def evaluate(data_source):
     return total_loss[0] / len(data_source)
 
 def load_simL():
-    fread_simlex=codecs.open("/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/english_simlex_word_pairs_human_scores.dat", 'r', 'utf-8')  #scores from felix hill
+    #fread_simlex=codecs.open("/home/ira/Dropbox/IraTechnion/Patterns_Research/sp_sg/english_simlex_word_pairs_human_scores.dat", 'r', 'utf-8')  #scores from felix hill
+    fread_simlex=codecs.open("english_simlex_word_pairs_human_scores.dat", 'r', 'utf-8')  #scores from felix hill
     words_dic={}
     pair_list_human=[]
     lines_f = fread_simlex.readlines()[1:]  # skips the first line of "number of vecs, dimension of each vec"
@@ -251,7 +248,7 @@ def compute_spearman(pair_list_human):
         v1=model.encoder.weight.data[word_i]
         v2=model.encoder.weight.data[word_j]
         #cosval= 1 - spatial.distance.cosine(v1, v2)
-        cosval=cosine_similarity([v1.numpy()], [v2.numpy()])
+        cosval=cosine_similarity([v1.cpu().numpy()], [v2.cpu().numpy()])
         model_scores[(word_i, word_j)] = round(cosval,3)
      
     spearman_human_scores=[]
@@ -294,7 +291,7 @@ def train():
             for next_lines in itertools.izip_longest(*[f]*100): #reads 100 lines at a time
                 line_start_time = time.time()
                 count_100+=1
-                if count_100  % 100== 0:
+                if count_100  % 10== 0:
                     compute_spearman(pair_list_human)
                 #print "Another 100 lines were read:", count_100
                 (tokens_set, ids)=tokenize_per_chunck(next_lines)
@@ -345,7 +342,7 @@ def train():
             
                     # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs / LSTMs.
                     torch.nn.utils.clip_grad_norm(model.parameters(), args.clip)
-                    for p in model.parameters():
+                    for p in model.parameters():  #len(p)=dictionary size
                         p.data.add_(-lr, p.grad.data)
             
                     total_loss += loss.data
